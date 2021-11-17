@@ -12,6 +12,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Cors;
 using MovieAPI.Models;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MovieAPI.Controllers
 {
@@ -20,15 +23,17 @@ namespace MovieAPI.Controllers
     [ApiController]
     public class AuthenticateController : ControllerBase
     {
+        private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly IConfiguration _configuration;
 
-        public AuthenticateController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
+        public AuthenticateController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext context, IConfiguration configuration)
         {
             this.userManager = userManager;
             this.roleManager = roleManager;
             _configuration = configuration;
+            _context = context;
         }
 
         [HttpPost]
@@ -57,7 +62,7 @@ namespace MovieAPI.Controllers
                 var token = new JwtSecurityToken(
                     issuer: _configuration["JWT:ValidIssuer"],
                     audience: _configuration["JWT:ValidAudience"],
-                    expires: DateTime.Now.AddMinutes(5),
+                    expires: DateTime.Now.AddMinutes(60),
                     claims: authClaims,
                     signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
                     );
@@ -65,9 +70,9 @@ namespace MovieAPI.Controllers
                 return Ok(new
                 {
                     token = new JwtSecurityTokenHandler().WriteToken(token),
-                    expiration = token.ValidTo ,
-                    role = userManager.GetRolesAsync(user).Result,
-                    username = model.Username,
+                    expiration = token.ValidTo,
+                    userRoles = await userManager.GetRolesAsync(user)
+
 
             });
             }
@@ -101,14 +106,23 @@ namespace MovieAPI.Controllers
         {
             UserInfo info = new UserInfo();
             ApplicationUser users;
-            string UserRole;
-            var user = User.Identity.Name;
-            if (User.IsInRole("Admin"))
-                UserRole = "Admin";
-            else
-                UserRole = "Actor";
+            String UserRole;
 
-            
+            var user = User.Identity.Name;
+
+            if(User.Identity.IsAuthenticated)
+            {
+                if (User.IsInRole("Admin"))
+                    UserRole = "Admin";
+                else
+                    UserRole = "Actor";
+            }
+            else
+            {
+                UserRole = null;
+            }
+
+           
 
             info.Role = UserRole;
             info.Username = user;
@@ -154,6 +168,41 @@ namespace MovieAPI.Controllers
             }
 
             return Ok(new Response { Status = "Success", Message = "User created successfully!" });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteUser(long id)
+        {
+            string usernam = _context.Actors.Where(x => x.Id == id).Select(x => x.Username).ToList().FirstOrDefault();
+
+            var actor = await _context.Actors.FindAsync(id);
+            var user = await userManager.FindByNameAsync(usernam);
+
+            if (user == null)
+            {
+                return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User Not found" });
+            }
+            else
+            {
+                var result = await userManager.DeleteAsync(user);
+                if (result.Succeeded)
+                {
+                    var lst = _context.MovieActorLinks.Where(x => x.Actorid == id);
+                    foreach (var link in lst)
+                    {
+                        _context.MovieActorLinks.Remove(link);
+                    }
+                    await _context.SaveChangesAsync();
+                    _context.Actors.Remove(actor);
+                    await _context.SaveChangesAsync();
+                    return StatusCode(StatusCodes.Status200OK);
+                }
+                else
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError);
+                }
+                
+            }
         }
     }
 }

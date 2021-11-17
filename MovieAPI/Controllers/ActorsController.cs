@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
-//using AutoMapper;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -63,9 +62,19 @@ namespace MovieAPI.Controllers
             return actor;
         }
 
-        [HttpGet("user/{user}")]
-        public async Task<ActionResult<Actor>> GetActorByUsername(string user)
+        [Authorize(Roles = UserRoles.Admin)]
+        [HttpGet]
+        [Route("Edit")]
+        public async Task<ActionResult<IEnumerable<Actor>>> GetActorEdit()
         {
+            return await _context.Actors.ToListAsync();
+        }
+
+        [HttpGet("curruser")]
+        public async Task<ActionResult<Actor>> GetActorByUsername()
+        {
+            string user = User.Identity.Name;
+
             var id = _context.Actors.Where(x => x.Username == user).Select(x => x.Id).ToList().FirstOrDefault();
 
             var actor = await _context.Actors.FindAsync(id);
@@ -130,19 +139,23 @@ namespace MovieAPI.Controllers
             return NoContent();
         }
 
-        // POST: api/Movies
+        // POST: api/Actors
+        [Authorize(Roles = UserRoles.Admin)]
         [HttpPost]
         [Route("addnew")]
-        public async Task<IActionResult> AddNew([FromBody] RegisterModel model)
+        public async Task<IActionResult> AddNew( RegisterModel model)
         {
             Actor actor = new Actor();
 
             actor.Username = model.Username;
-            actor.Aname = model.Name;
+            actor.Aname = model.Aname;
             actor.Email = model.Email;
-            
+            actor.Photo = model.Username;
+            actor.Age = model.Age;
+            actor.Experience = model.Experience;
+            actor.Gender = model.Gender;
+            actor.Phone = model.Phone;
 
-            model.Name = null;
 
             var userExists = await userManager.FindByNameAsync(model.Username);
             if (userExists != null)
@@ -168,11 +181,12 @@ namespace MovieAPI.Controllers
                 await userManager.AddToRoleAsync(user, UserRoles.Actor);
             }
 
-
             _context.Actors.Add(actor);
             await _context.SaveChangesAsync();
             return Ok(new Response { Status = "Success", Message = "User created successfully!" });
+
         }
+        
 
         public async Task<ActionResult<Movie>> PostActor(Actor actor)
         {
@@ -183,22 +197,22 @@ namespace MovieAPI.Controllers
             return CreatedAtAction("GetMovie", new { id = actor.Id }, actor);
         }
 
-        // DELETE: api/Movies/5
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<Movie>> DeleteActor(int id)
-        {
-            var movie = await _context.Movies.FindAsync(id);
-            if (movie == null)
-            {
-                return NotFound();
-            }
+        //[Authorize(Roles = UserRoles.Admin)]
+        //[HttpDelete("{id}")]
+        //public async Task<ActionResult<Movie>> DeleteActor(int id)
+        //{
+        //    var movie = await _context.Movies.FindAsync(id);
+        //    if (movie == null)
+        //    {
+        //        return NotFound();
+        //    }
 
-            _context.Movies.Remove(movie);
-            await _context.SaveChangesAsync();
+        //    _context.Movies.Remove(movie);
+        //    await _context.SaveChangesAsync();
 
-            return movie;
-        }
-        [Route("user")]
+        //    return movie;
+        //}
+        //[Route("user")]
 
 
         private bool ActorExists(int id)

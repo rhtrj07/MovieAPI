@@ -53,6 +53,15 @@ namespace MovieAPI.Controllers
             return await _context.Actors.Where(h => li.Contains(h.Id)).ToListAsync();
         }
 
+        [Authorize(Roles = UserRoles.Admin)]
+        [HttpGet]
+        [Route("castEdit/{id}")]
+        public async Task<ActionResult<IEnumerable<Actor>>> CastsEdit(long id)
+        {
+            var li = _context.MovieActorLinks.Where(x => x.Movieid == id).Select(st => st.Actorid).ToList();
+            return await _context.Actors.Where(h => li.Contains(h.Id)).ToListAsync();
+        }
+
         [HttpGet]
         [Route("movies/{id}")]
         public async Task<ActionResult<IEnumerable<Movie>>> Movies(long id)
@@ -63,10 +72,12 @@ namespace MovieAPI.Controllers
             return lu;
         }
 
+        [Authorize(Roles = UserRoles.Actor)]
         [HttpGet]
-        [Route("moviesbyuser/{user}")]
-        public async Task<ActionResult<IEnumerable<Movie>>> MoviesByUsername(string user)
+        [Route("moviesbyuser")]
+        public async Task<ActionResult<IEnumerable<Movie>>> MoviesByUsername()
         {
+            string user = User.Identity.Name;
             var id = _context.Actors.Where(x => x.Username == user).Select(st => st.Id).ToList().FirstOrDefault();
             var li = _context.MovieActorLinks.Where(x => x.Actorid == id).Select(st => st.Movieid).ToList();
             var lu = await _context.Movies.Where(h => li.Contains(h.Id)).ToListAsync();

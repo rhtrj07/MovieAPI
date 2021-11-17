@@ -7,7 +7,7 @@ namespace MovieAPI.Authentication
 
 
        
-        public string Name { get; set; }
+        
         
         [Required(ErrorMessage = "User Name is required")]
         public string Username { get; set; }
@@ -18,6 +18,18 @@ namespace MovieAPI.Authentication
 
         [Required(ErrorMessage = "Password is required")]
         public string Password { get; set; }
+
+        public string Aname { get; set; }
+
+        public string Photo { get; set; }
+
+        public long? Age { get; set; }
+
+        public double? Experience { get; set; }
+
+        public string Gender { get; set; }
+
+        public long? Phone { get; set; }
 
     }
 }

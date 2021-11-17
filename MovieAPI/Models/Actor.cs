@@ -19,7 +19,7 @@ namespace MovieAPI.Models
         public string Photo { get; set; }
         
         public long? Age { get; set; }
-        public long? Experience { get; set; }
+        public double? Experience { get; set; }
         public string Gender { get; set; }
         public string Email { get; set; }
         public long? Phone { get; set; }

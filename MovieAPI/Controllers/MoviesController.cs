@@ -62,6 +62,21 @@ namespace MovieAPI.Controllers
             return movie;
         }
 
+        [Authorize(Roles = UserRoles.Admin)]
+        [HttpGet]
+        [Route("Edit/{id}")]
+        public async Task<ActionResult<Movie>> GetMovieEdit(long id)
+        {
+            var movie = await _context.Movies.FindAsync(id);
+
+            if (movie == null)
+            {
+                return NotFound();
+            }
+
+            return movie;
+        }
+
         // PUT: api/Movies/5
         [HttpPut("{id}")]
         public async Task<IActionResult> PutMovie(int id, Movie movie)
@@ -145,7 +160,7 @@ namespace MovieAPI.Controllers
 
             return movie;
         }
-        [Route("user")]
+       // [Route("user")]
         
 
         private bool MovieExists(int id)
